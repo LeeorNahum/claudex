@@ -20,6 +20,10 @@ Each description is the trigger. Respect it, and when it matches the task, read 
 
 > Use whenever this skill is visible or available to the agent. Always prevent em dashes (U+2014) in all agent-generated replies, text, edits, docs, comments, commit messages, and tool output. Also use when the user mentions em dashes, asks for AI-like punctuation cleanup, or explicitly asks to remove em dashes from named files, folders, or repos. Full-repo retroactive cleanup only on explicit user request for that scope.
 
+## [release-versioning](.agents/skills/release-versioning/SKILL.md)
+
+> Manage versioned releases and release artifacts across software, apps, firmware, skills, packages, and downloadable builds. Use when bumping semver, preparing GitHub releases, syncing README badges/version mentions, publishing binaries or archives, attaching release assets, updating package/app metadata, or making sure version constants and docs agree before a release.
+
 ## [skill-sync](.agents/skills/skill-sync/SKILL.md)
 
 > Sync and update all installed skill submodules to their latest remote commits. Use this skill before every Git commit, or whenever the user asks to update, sync, refresh, or pull installed skills, or when a skill is installed.

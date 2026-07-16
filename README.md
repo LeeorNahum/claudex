@@ -1,5 +1,7 @@
 # claudex
 
+[![GitHub Release](https://img.shields.io/github/v/release/LeeorNahum/claudex?sort=semver)](https://github.com/LeeorNahum/claudex/releases/latest)
+
 Run Claude Code's actual interface against GPT-5.6 Sol (OpenAI's model) instead of Anthropic's models. Windows uses the `.cmd` files, macOS/Linux use the `.sh` files.
 
 ## Why this exists
@@ -14,31 +16,31 @@ Claude Code's CLI only speaks Anthropic's own request format, so making it use G
 
 ## Setup
 
+Get the source, either a `git clone` or a download of the [latest release](https://github.com/LeeorNahum/claudex/releases/latest), then run setup from inside it.
+
 One-time setup (Windows):
 
 ```text
 setup.cmd
-cli-proxy-api.exe -codex-login
 ```
 
 One-time setup (macOS/Linux):
 
 ```text
 ./setup.sh
-./cli-proxy-api -codex-login
 ```
 
-`setup` downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes `config.yaml` (bound to `127.0.0.1`, never exposed to the network). `-codex-login` opens a browser for a one-time OAuth login to your ChatGPT/Codex account; credentials land in `auth/`.
+`setup` installs claudex into a stable per-user directory (`~/.local/share/claudex`, or `%USERPROFILE%\.local\share\claudex` on Windows), separate from wherever you got the source, and puts a `claudex` command on your PATH. It downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes a `config.yaml` (bound to `127.0.0.1`, never exposed to the network), all inside that directory. Re-running setup later (say, after a `git pull`) refreshes the launcher script without touching your existing token, config, or login.
 
-After that, run `claudex.cmd` (or `./claudex.sh`) whenever you want Claude Code routed through GPT-5.6 Sol. It starts the proxy if it isn't already running, health-checks it before use, and launches `claude --model gpt-5.6-sol`.
+Setup prints the one remaining one-time step: running `cli-proxy-api -codex-login` from the install directory, which opens a browser for a one-time OAuth login to your ChatGPT/Codex account. Credentials land in `auth/` inside the install directory. After that, and after opening a new terminal so the PATH change takes effect, run `claudex` from anywhere whenever you want Claude Code routed through GPT-5.6 Sol. It starts the proxy if it isn't already running, health-checks it before use, and launches `claude --model gpt-5.6-sol`.
 
-Put `claudex.cmd`/`claudex.sh` on your PATH once set up, so `claudex` works from anywhere.
+Once setup finishes, the folder you got the source into is no longer needed; claudex runs entirely from the install directory.
 
 ## Set up with an AI coding agent
 
 Paste this into Claude Code, Codex, or any coding agent:
 
-> Clone https://github.com/LeeorNahum/claudex, read its README.md, then set it up for me. Run the setup script, then stop and tell me exactly when to run the `-codex-login` step myself, since that's a one-time interactive browser login you can't do on my behalf. Put `claudex` on my PATH. Verify it actually works, then summarize what you did.
+> Set up claudex from https://github.com/LeeorNahum/claudex for me. Read its README.md first, then get it installed and put `claudex` on my PATH. Stop and tell me exactly when to run the one-time login step myself, since that's an interactive browser login you can't do on my behalf. Verify it actually works, then summarize what you did.
 
 ## Real gotchas found running this
 

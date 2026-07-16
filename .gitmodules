@@ -7,3 +7,6 @@
 [submodule ".agents/skills/skill-sync"]
 	path = .agents/skills/skill-sync
 	url = https://github.com/LeeorNahum/skill-sync-skill.git
+[submodule ".agents/skills/release-versioning"]
+	path = .agents/skills/release-versioning
+	url = https://github.com/LeeorNahum/release-versioning-skill.git
