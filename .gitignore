@@ -1,0 +1,16 @@
+*.log
+*.tmp
+
+# runtime/local state: never commit a binary, a local secret token,
+# generated config, or OAuth credentials
+cli-proxy-api.exe
+cli-proxy-api
+config.yaml
+claudex-token.txt
+curl-auth.cfg
+auth/
+static/
+LICENSE
+README_CN.md
+config.example.yaml
+_cliproxy_extract/
