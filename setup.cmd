@@ -22,7 +22,10 @@ if exist "%INSTALL_DIR%\cli-proxy-api.exe" (
     exit /b 1
   )
   echo Latest release: !TAG!
-  curl.exe -fsSL -o "%TEMP%\claudex-cliproxy.zip" "https://github.com/router-for-me/CLIProxyAPI/releases/download/!TAG!/CLIProxyAPI_!TAG:v=!_windows_amd64.zip"
+  set "WIN_ARCH=amd64"
+  if /i "%PROCESSOR_ARCHITECTURE%"=="ARM64" set "WIN_ARCH=aarch64"
+  if /i "%PROCESSOR_ARCHITEW6432%"=="ARM64" set "WIN_ARCH=aarch64"
+  curl.exe -fsSL -o "%TEMP%\claudex-cliproxy.zip" "https://github.com/router-for-me/CLIProxyAPI/releases/download/!TAG!/CLIProxyAPI_!TAG:v=!_windows_!WIN_ARCH!.zip"
   if errorlevel 1 (
     echo Download failed. Check the asset name still matches at:
     echo https://github.com/router-for-me/CLIProxyAPI/releases
