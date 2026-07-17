@@ -4,6 +4,8 @@
 
 Run Claude Code's actual interface against GPT-5.6 Sol (OpenAI's model) instead of Anthropic's models. Windows uses the `.cmd` files, macOS/Linux use the `.sh` files.
 
+<img width="1896" height="936" alt="Claudex Demo" src="https://github.com/user-attachments/assets/b3f6d088-e5e2-4e68-b3f3-112b07815b66" />
+
 ## Why this exists
 
 Theo Browne, the developer behind t3.gg, made a claim that got real attention: OpenAI's newest model performs meaningfully better inside Anthropic's Claude Code than inside OpenAI's own CLI, Codex. The reason is not mysterious: Codex has a documented bug (its MultiAgent V2 mode defaults `hide_spawn_agent_metadata` to `true`, removing the very fields needed to route subagents to cheaper models), so every subagent silently inherits the full, expensive parent configuration. Theo reported cutting his own token spend by 4 to 5x after working around it. Claude Code's harness does not have this problem.
