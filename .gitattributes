@@ -1,0 +1,14 @@
+# Binary assets: never let core.autocrlf touch these. Without this,
+# git's binary-detection heuristic can misfire on a later checkout/add
+# and silently corrupt the file by converting line endings inside
+# binary data. Confirmed happening for real in the sibling planning repo.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.mp4 binary
+*.mov binary
+*.webm binary
+*.zip binary
+*.exe binary
+*.ico binary
