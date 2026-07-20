@@ -5,7 +5,7 @@ set "SCRIPT_DIR=%~dp0"
 REM claudex is Claude Code wired to the extra models and providers: every
 REM session runs through the local CLIProxyAPI, with the full proxy catalog in
 REM the /model picker. Plain vanilla Claude Code is what `claude` itself is
-REM for; claudex never opens it.
+REM for. claudex never opens it.
 set "MODEL=gpt-5.6-sol"
 set "ARGS="
 set "CONSUMED="
@@ -22,12 +22,12 @@ REM Not a model id: treat it as a prompt/argument for Claude Code as-is.
 goto args_done
 
 :native_redirect
-echo claudex: '!FIRST!' is a native Claude model. claudex only serves the extra providers;
+echo claudex: '!FIRST!' is a native Claude model, and claudex only serves the extra providers.
 echo claudex: for Claude itself run: claude --model !FIRST!
 exit /b 1
 
 :consume
-REM The model argument is consumed; rebuild the remaining args for claude.
+REM The model argument is consumed. Rebuild the remaining args for claude.
 set "CONSUMED=1"
 :collect
 shift
@@ -86,7 +86,7 @@ REM Unique per-launch file: parallel claudex terminals must never share one
 REM catalog snapshot, or a slow launch can read another launch's stale data.
 set "MODELS_JSON=%TEMP%\claudex-models-%RANDOM%%RANDOM%.json"
 curl.exe -fsS -K "%SCRIPT_DIR%curl-auth.cfg" -o "!MODELS_JSON!" http://127.0.0.1:8317/v1/models 2>nul
-REM The [1m] long-context suffix is Claude Code notation; the catalog lists the base id.
+REM The [1m] long-context suffix is Claude Code notation. The catalog lists the base id.
 set "CATALOG_ID=!MODEL!"
 if "!MODEL!"=="k3[1m]" set "CATALOG_ID=k3"
 powershell -NoProfile -Command "$ids = (Get-Content '!MODELS_JSON!' -Raw | ConvertFrom-Json).data.id; if ($ids -contains '!CATALOG_ID!') { exit 0 } else { exit 1 }"
@@ -148,8 +148,8 @@ set CLAUDE_CODE_MAX_RETRIES=15
 set CLAUDE_CODE_RETRY_WATCHDOG=1
 REM Claude Code's own context/compaction defaults are tuned for Anthropic's
 REM real models, not an arbitrary swapped-in one, so it can compact at the
-REM wrong point without this. Values track each supported model's real window;
-REM unknown ids keep Claude Code's defaults.
+REM wrong point without this. Values track each supported model's real window,
+REM and unknown ids keep Claude Code's defaults.
 set "CONTEXT_TOKENS="
 if "!MODEL:~0,8!"=="gpt-5.6-" set "CONTEXT_TOKENS=372000"
 if "!MODEL!"=="k3" set "CONTEXT_TOKENS=262144"

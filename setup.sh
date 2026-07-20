@@ -84,7 +84,7 @@ cp claudex.sh "$INSTALL_DIR/claudex.sh"
 chmod +x "$INSTALL_DIR/claudex.sh"
 
 # The repo checkout is only needed to run this script. Once installed,
-# claudex runs entirely from INSTALL_DIR; the PATH shim is the only thing
+# claudex runs entirely from INSTALL_DIR, and the PATH shim is the only thing
 # a user's shell ever needs to find.
 cat > "$BIN_DIR/claudex" <<EOF
 #!/bin/sh

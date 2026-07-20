@@ -88,7 +88,7 @@ REM token, config, or OAuth credential already sitting in INSTALL_DIR.
 copy /y claudex.cmd "%INSTALL_DIR%\claudex.cmd" >nul
 
 REM The repo checkout is only needed to run this script. Once installed,
-REM claudex runs entirely from INSTALL_DIR; the PATH shim is the only thing
+REM claudex runs entirely from INSTALL_DIR, and the PATH shim is the only thing
 REM a user's shell ever needs to find.
 (
   echo @echo off

@@ -5,14 +5,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # claudex is Claude Code wired to the extra models and providers: every
 # session runs through the local CLIProxyAPI, with the full proxy catalog in
 # the /model picker. Plain vanilla Claude Code is what `claude` itself is
-# for; claudex never opens it.
+# for. claudex never opens it.
 MODEL="gpt-5.6-sol"
 case "${1:-}" in
   "" | -*)
     # No model named: default model, args forwarded untouched.
     ;;
   sonnet | opus | haiku | fable | default | opusplan | claude-*)
-    echo "claudex: '$1' is a native Claude model. claudex only serves the extra providers;" >&2
+    echo "claudex: '$1' is a native Claude model, and claudex only serves the extra providers." >&2
     echo "claudex: for Claude itself run: claude --model $1" >&2
     exit 1
     ;;
@@ -69,7 +69,7 @@ fi
 # for. This turns the proxy's opaque "502 unknown provider" into a clear,
 # actionable error before any session starts.
 CATALOG=$(curl -fsS -K "$SCRIPT_DIR/curl-auth.cfg" http://127.0.0.1:8317/v1/models 2>/dev/null || true)
-# The [1m] long-context suffix is Claude Code notation; the catalog lists the base id.
+# The [1m] long-context suffix is Claude Code notation. The catalog lists the base id.
 CATALOG_ID=${MODEL%"[1m]"}
 if ! printf '%s' "$CATALOG" | grep -q "\"id\":\"$CATALOG_ID\""; then
   echo "claudex: the local proxy has no credentials for model '$MODEL'." >&2
@@ -126,8 +126,8 @@ export CLAUDE_CODE_MAX_RETRIES=15
 export CLAUDE_CODE_RETRY_WATCHDOG=1
 # Claude Code's own context/compaction defaults are tuned for Anthropic's
 # real models, not an arbitrary swapped-in one, so it can compact at the
-# wrong point without this. Values track each supported model's real window;
-# unknown ids keep Claude Code's defaults.
+# wrong point without this. Values track each supported model's real window,
+# and unknown ids keep Claude Code's defaults.
 case "$MODEL" in
   gpt-5.6-*) CONTEXT_TOKENS=372000 ;;
   "k3[1m]") CONTEXT_TOKENS=1048576 ;;
