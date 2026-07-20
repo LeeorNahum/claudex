@@ -2,6 +2,40 @@
 set -eu
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# claudex is Claude Code plus compatibility for other models and providers.
+# Bare claudex (or a native Claude model/alias) launches Claude Code untouched.
+# A canonical proxy model id (gpt-*, k3, kimi-*) routes that session through
+# the local CLIProxyAPI instead. One session speaks to exactly one backend.
+MODE=native
+MODEL=""
+case "${1:-}" in
+  "" | -*)
+    # No model named: plain Claude Code, all args forwarded untouched.
+    ;;
+  sonnet | opus | haiku | fable | default | opusplan | claude-*)
+    MODEL="$1"
+    shift
+    ;;
+  gpt-* | k3 | "k3[1m]" | kimi-*)
+    MODE=proxy
+    MODEL="$1"
+    shift
+    ;;
+  *)
+    # Not a model id: treat it as a prompt/argument for Claude Code as-is.
+    ;;
+esac
+
+if [ "$MODE" = "native" ]; then
+  # Clear stray non-Anthropic credentials so nothing hijacks the native login,
+  # but leave the real Claude auth surface completely untouched.
+  unset OPENAI_API_KEY
+  if [ -n "$MODEL" ]; then
+    exec claude --model "$MODEL" "$@"
+  fi
+  exec claude "$@"
+fi
+
 for f in cli-proxy-api config.yaml claudex-token.txt; do
   if [ ! -e "$SCRIPT_DIR/$f" ]; then
     echo "claudex: not set up yet. Run setup.sh first." >&2
@@ -42,24 +76,67 @@ if ! is_ready; then
   fi
 fi
 
+# Preflight: only launch against a model the proxy actually has credentials
+# for. This turns the proxy's opaque "502 unknown provider" into a clear,
+# actionable error before any session starts.
+CATALOG=$(curl -fsS -K "$SCRIPT_DIR/curl-auth.cfg" http://127.0.0.1:8317/v1/models 2>/dev/null || true)
+# The [1m] long-context suffix is Claude Code notation; the catalog lists the base id.
+CATALOG_ID=${MODEL%"[1m]"}
+if ! printf '%s' "$CATALOG" | grep -q "\"id\":\"$CATALOG_ID\""; then
+  echo "claudex: the local proxy has no credentials for model '$MODEL'." >&2
+  case "$MODEL" in
+    k3 | "k3[1m]" | kimi-*)
+      echo "claudex: Kimi needs a one-time login: cd \"$SCRIPT_DIR\" && ./cli-proxy-api -kimi-login" >&2
+      ;;
+    *)
+      echo "claudex: if the Codex OAuth credential expired, re-run: cd \"$SCRIPT_DIR\" && ./cli-proxy-api -codex-login" >&2
+      ;;
+  esac
+  echo "claudex: models the proxy currently serves:" >&2
+  printf '%s\n' "$CATALOG" | tr ',' '\n' | sed -n 's/.*"id":"\([^"]*\)".*/  \1/p' >&2
+  exit 1
+fi
+
 # Clear any stray real credentials first so nothing outranks the proxy override.
 unset ANTHROPIC_API_KEY OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN
 
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="$TOKEN"
-# Force subagents onto gpt-5.6-sol too. Without this, a subagent that
-# defaults to a real Anthropic model (e.g. claude-opus-4-8) gets a 502
-# from the proxy, since it only ever authenticates Codex/OpenAI models.
-export CLAUDE_CODE_SUBAGENT_MODEL="gpt-5.6-sol"
+# Pin every internal model tier to the selected model. Without these, Claude
+# Code's subagents and background calls default to real Anthropic ids
+# (e.g. claude-opus-4-8, claude-haiku-4-5) and get a 502 from the proxy,
+# since it only holds Codex/Kimi credentials, never Anthropic ones.
+export CLAUDE_CODE_SUBAGENT_MODEL="$MODEL"
+export ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL"
+export ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL"
+export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL"
+export ANTHROPIC_DEFAULT_FABLE_MODEL="$MODEL"
+# Let /model list the proxy's real catalog, so switching between proxy-served
+# models mid-session works and unregistered models never appear.
+export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
 export CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1
 export CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=3
+export ENABLE_TOOL_SEARCH=false
+# Gentle rate-limit smoothing: upstream quotas are account-level and shared
+# by every claudex terminal, so parallel sessions will sometimes 429. Retry
+# with exponential backoff until the quota window frees up, instead of
+# erroring out the whole thread.
+export CLAUDE_CODE_MAX_RETRIES=15
+export CLAUDE_CODE_RETRY_WATCHDOG=1
 # Claude Code's own context/compaction defaults are tuned for Anthropic's
 # real models, not an arbitrary swapped-in one, so it can compact at the
-# wrong point without this. 372000 matches gpt-5.6-sol's real context
-# window; re-check this if the model changes.
-export CLAUDE_CODE_MAX_CONTEXT_TOKENS=372000
-export CLAUDE_CODE_AUTO_COMPACT_WINDOW=372000
-export ENABLE_TOOL_SEARCH=false
+# wrong point without this. Values track each supported model's real window;
+# unknown ids keep Claude Code's defaults.
+case "$MODEL" in
+  gpt-5.6-*) CONTEXT_TOKENS=372000 ;;
+  "k3[1m]") CONTEXT_TOKENS=1048576 ;;
+  k3 | kimi-*) CONTEXT_TOKENS=262144 ;;
+  *) CONTEXT_TOKENS="" ;;
+esac
+if [ -n "$CONTEXT_TOKENS" ]; then
+  export CLAUDE_CODE_MAX_CONTEXT_TOKENS="$CONTEXT_TOKENS"
+  export CLAUDE_CODE_AUTO_COMPACT_WINDOW="$CONTEXT_TOKENS"
+fi
 # Deliberately no cd here: claude must launch from the caller's actual
 # working directory, not from SCRIPT_DIR. That was the bug.
-exec claude --model gpt-5.6-sol "$@"
+exec claude --model "$MODEL" "$@"

@@ -67,7 +67,14 @@ auth-dir: "auth"
 api-keys:
   - "$TOKEN"
 debug: false
+request-retry: 3
 EOF
+elif ! grep -q '^request-retry:' "$INSTALL_DIR/config.yaml"; then
+  # One additive migration for installs from before v2.0.0: proxy-side retry
+  # smooths transient upstream errors (403/408/5xx) without touching anything
+  # else in the user's existing config.
+  echo "Adding request-retry to your existing config.yaml..."
+  printf 'request-retry: 3\n' >> "$INSTALL_DIR/config.yaml"
 fi
 
 # The launcher script is plain code, not user state: always refresh it so
@@ -98,7 +105,13 @@ cat <<EOF
 claudex v$VERSION installed to $INSTALL_DIR
 Two things left, both one-time:
   1. cd "$INSTALL_DIR" && ./cli-proxy-api -codex-login   (opens a browser, authenticate with your ChatGPT/Codex account)
-  2. Open a new shell (or source your profile), then run claudex whenever you want Claude Code routed through GPT-5.6 Sol.
+  2. Open a new shell (or source your profile), then run claudex.
+
+How to use it:
+  claudex                 normal Claude Code, your Claude login, untouched
+  claudex gpt-5.6-sol     that session runs GPT-5.6 Sol through the local proxy
+  claudex gpt-5.6-terra   same for Terra (also gpt-5.6-luna)
+  claudex k3              Kimi K3, after a one-time ./cli-proxy-api -kimi-login
 
 Never run -claude-login. It routes your real Claude subscription through a third-party
 tool, which violates Anthropic's Consumer Terms and has led to real account suspensions.

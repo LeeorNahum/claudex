@@ -49,8 +49,12 @@ if not exist "%INSTALL_DIR%\claudex-token.txt" (
   echo Generating a local proxy token...
   for /f "delims=" %%t in ('openssl rand -hex 32 2^>nul') do set TOKEN=%%t
   if "!TOKEN!"=="" (
-    echo openssl not found; falling back to a weaker token source.
-    set TOKEN=%RANDOM%%RANDOM%%RANDOM%%RANDOM%
+    REM No openssl: fall back to .NET's cryptographic RNG, never %RANDOM%.
+    for /f "delims=" %%t in ('powershell -NoProfile -Command "$b = New-Object byte[] 32; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($b); -join ($b | ForEach-Object { $_.ToString('x2') })"') do set TOKEN=%%t
+  )
+  if "!TOKEN!"=="" (
+    echo Could not generate a token. Aborting.
+    exit /b 1
   )
   (echo !TOKEN!)>"%INSTALL_DIR%\claudex-token.txt"
 )
@@ -65,7 +69,17 @@ if not exist "%INSTALL_DIR%\config.yaml" (
     echo api-keys:
     echo   - "!TOKEN!"
     echo debug: false
+    echo request-retry: 3
   )>"%INSTALL_DIR%\config.yaml"
+) else (
+  REM One additive migration for installs from before v2.0.0: proxy-side retry
+  REM smooths transient upstream errors (403/408/5xx) without touching anything
+  REM else in the user's existing config.
+  findstr /b /c:"request-retry:" "%INSTALL_DIR%\config.yaml" >nul 2>&1
+  if errorlevel 1 (
+    echo Adding request-retry to your existing config.yaml...
+    (echo request-retry: 3)>>"%INSTALL_DIR%\config.yaml"
+  )
 )
 
 REM The launcher script is plain code, not user state: always refresh it so
@@ -87,7 +101,13 @@ echo.
 echo claudex v!VERSION! installed to %INSTALL_DIR%
 echo Two things left, both one-time:
 echo   1. cd /d "%INSTALL_DIR%" ^&^& cli-proxy-api.exe -codex-login   (opens a browser, authenticate with your ChatGPT/Codex account)
-echo   2. Open a new terminal, then run claudex whenever you want Claude Code routed through GPT-5.6 Sol.
+echo   2. Open a new terminal, then run claudex.
+echo.
+echo How to use it:
+echo   claudex                 normal Claude Code, your Claude login, untouched
+echo   claudex gpt-5.6-sol     that session runs GPT-5.6 Sol through the local proxy
+echo   claudex gpt-5.6-terra   same for Terra (also gpt-5.6-luna)
+echo   claudex k3              Kimi K3, after a one-time cli-proxy-api.exe -kimi-login
 echo.
 echo Never run -claude-login. It routes your real Claude subscription through a third-party
 echo tool, which violates Anthropic's Consumer Terms and has led to real account suspensions.
