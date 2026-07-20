@@ -9,7 +9,7 @@ Claude Code, wired to the models Anthropic doesn't serve. Every claudex session 
 - Everything this repo generates locally (the downloaded binary, `config.yaml`, the token, the OAuth credential) is gitignored. Never commit any of it.
 - Keep this repo small and self-contained. No framework, no installer wizard, no dependency beyond what the launcher genuinely needs.
 - Run `skill-sync` before every commit (see that skill).
-- Use `release-versioning` when tagging or preparing a GitHub release (see that skill). The version lives only in the git tag, the GitHub release, and the README badge, with no version file or constant in the source. The source checkout and the installed, running copy are deliberately separate: `setup.cmd`/`setup.sh` install into a stable per-user directory and put a PATH shim there, never assuming the repo folder stays around.
+- Use `release-versioning` when tagging or preparing a GitHub release (see that skill). The version lives only in the git tag, the GitHub release, and the README badge. The source checkout and the installed, running copy are deliberately separate: `setup.cmd`/`setup.sh` install into a stable per-user directory and put a PATH shim there, never assuming the repo folder stays around.
 
 ## Model support contract
 
