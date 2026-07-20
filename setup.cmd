@@ -97,6 +97,22 @@ if errorlevel 1 (
   )>>"%INSTALL_DIR%\config.yaml"
 )
 
+REM The launchers point Claude Code's internal background/summary calls at
+REM this alias so its /model picker row reads as what it is. It maps to the
+REM family's lightest tier (the haiku analog). Update the
+REM mapping when generations change.
+findstr /b /c:"oauth-model-alias:" "%INSTALL_DIR%\config.yaml" >nul 2>&1
+if errorlevel 1 (
+  echo Adding the background-summaries alias to config.yaml...
+  (
+    echo oauth-model-alias:
+    echo   codex:
+    echo     - name: "gpt-5.6-luna"
+    echo       alias: "background-summaries"
+    echo       fork: true
+  )>>"%INSTALL_DIR%\config.yaml"
+)
+
 REM The launcher script is plain code, not user state: always refresh it so
 REM re-running setup after a git pull picks up fixes without touching the
 REM token, config, or OAuth credential already sitting in INSTALL_DIR.

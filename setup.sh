@@ -91,6 +91,21 @@ oauth-excluded-models:
 EOF
 fi
 
+# The launchers point Claude Code's internal background/summary calls at
+# this alias so its /model picker row reads as what it is. It maps to the
+# family's lightest tier (the haiku analog). Update the
+# mapping when generations change.
+if ! grep -q '^oauth-model-alias:' "$INSTALL_DIR/config.yaml"; then
+  echo "Adding the background-summaries alias to config.yaml..."
+  cat >> "$INSTALL_DIR/config.yaml" <<EOF
+oauth-model-alias:
+  codex:
+    - name: "gpt-5.6-luna"
+      alias: "background-summaries"
+      fork: true
+EOF
+fi
+
 # The launcher script is plain code, not user state: always refresh it so
 # re-running setup after a git pull picks up fixes without touching the
 # token, config, or OAuth credential already sitting in INSTALL_DIR.
