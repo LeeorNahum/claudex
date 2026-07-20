@@ -79,6 +79,24 @@ if not exist "%INSTALL_DIR%\config.yaml" (
   )
 )
 
+REM Keep the proxy catalog pruned to the supported roster. The /model picker
+REM in claudex sessions lists whatever the proxy serves, so retired
+REM generations and non-chat models are excluded here. When a generation is
+REM retired, add its ids to this list the same way.
+findstr /b /c:"oauth-excluded-models:" "%INSTALL_DIR%\config.yaml" >nul 2>&1
+if errorlevel 1 (
+  echo Pruning retired models from the proxy catalog in config.yaml...
+  (
+    echo oauth-excluded-models:
+    echo   codex:
+    echo     - "gpt-5.3*"
+    echo     - "gpt-5.4*"
+    echo     - "gpt-5.5*"
+    echo     - "gpt-image*"
+    echo     - "codex-auto-review"
+  )>>"%INSTALL_DIR%\config.yaml"
+)
+
 REM The launcher script is plain code, not user state: always refresh it so
 REM re-running setup after a git pull picks up fixes without touching the
 REM token, config, or OAuth credential already sitting in INSTALL_DIR.

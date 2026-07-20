@@ -103,15 +103,15 @@ unset ANTHROPIC_API_KEY OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN
 
 export ANTHROPIC_BASE_URL="http://127.0.0.1:8317"
 export ANTHROPIC_AUTH_TOKEN="$TOKEN"
-# Pin every internal model tier to the selected model. Without these, Claude
-# Code's subagents and background calls default to real Anthropic ids
-# (e.g. claude-opus-4-8, claude-haiku-4-5) and get a 502 from the proxy,
-# since it only holds Codex/Kimi credentials, never Anthropic ones.
+# Pin subagents and haiku-tier background calls (bash descriptions, topic
+# detection) to the selected model. Without these, they default to real
+# Anthropic ids and get a 502 from the proxy, which only holds Codex/Kimi
+# credentials. Only the haiku tier is overridden: each ANTHROPIC_DEFAULT_*
+# override adds a duplicate "Custom" row to the /model picker, and the
+# other tiers are never called internally. Typing a native alias like
+# "/model sonnet" errors visibly instead, which is the intended redirect.
 export CLAUDE_CODE_SUBAGENT_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_HAIKU_MODEL="$MODEL"
-export ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL"
-export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL"
-export ANTHROPIC_DEFAULT_FABLE_MODEL="$MODEL"
 # Let /model list the proxy's real catalog, so switching between proxy-served
 # models mid-session works and unregistered models never appear as real entries.
 export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1

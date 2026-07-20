@@ -74,6 +74,23 @@ elif ! grep -q '^request-retry:' "$INSTALL_DIR/config.yaml"; then
   printf 'request-retry: 3\n' >> "$INSTALL_DIR/config.yaml"
 fi
 
+# Keep the proxy catalog pruned to the supported roster. The /model picker
+# in claudex sessions lists whatever the proxy serves, so retired
+# generations and non-chat models are excluded here. When a generation is
+# retired, add its ids to this list the same way.
+if ! grep -q '^oauth-excluded-models:' "$INSTALL_DIR/config.yaml"; then
+  echo "Pruning retired models from the proxy catalog in config.yaml..."
+  cat >> "$INSTALL_DIR/config.yaml" <<EOF
+oauth-excluded-models:
+  codex:
+    - "gpt-5.3*"
+    - "gpt-5.4*"
+    - "gpt-5.5*"
+    - "gpt-image*"
+    - "codex-auto-review"
+EOF
+fi
+
 # The launcher script is plain code, not user state: always refresh it so
 # re-running setup after a git pull picks up fixes without touching the
 # token, config, or OAuth credential already sitting in INSTALL_DIR.

@@ -16,12 +16,12 @@ He explained the why in real detail and never actually walked through the setup 
 
 Claude Code's CLI only speaks Anthropic's own request format, so serving it other providers' models needs a local proxy translating that format. This repo vendors [CLIProxyAPI](https://github.com/router-for-me/CLIProxyAPI) (MIT) for exactly that: every claudex session points Claude Code at `http://127.0.0.1:8317` with a local-only token instead of Anthropic's servers.
 
-One session speaks to exactly one backend, and a claudex session's backend is always the proxy. The `/model` picker lists the proxy's whole live catalog (claudex enables gateway model discovery), so switching between GPT and Kimi models mid-session just works. Kimi stays visible in the picker even before you've signed in, as a "Kimi K3 (not signed in)" entry. Picking it errors in-chat with the exact login command. Native Claude models can't ride through the proxy (that would require registering Claude credentials with a third-party tool, which violates Anthropic's terms), so for Claude itself you run plain `claude`, and claudex will tell you exactly that if you ask it for one.
+One session speaks to exactly one backend, and a claudex session's backend is always the proxy. The `/model` picker lists the proxy's live catalog (claudex enables gateway model discovery, and setup prunes the catalog to the supported roster), so switching between GPT and Kimi models mid-session just works. Kimi stays visible in the picker even before you've signed in, as a "Kimi K3 (not signed in)" entry. Picking it errors in-chat with the exact login command. Native Claude models can't ride through the proxy (that would require registering Claude credentials with a third-party tool, which violates Anthropic's terms), so for Claude itself you run plain `claude`, and claudex will tell you exactly that if you ask it for one.
 
 ## Usage
 
 ```text
-claudex                     Claude Code on GPT-5.6 Sol, full proxy catalog in /model
+claudex                     Claude Code on GPT-5.6 Sol, proxy catalog in /model
 claudex gpt-5.6-terra       start on GPT-5.6 Terra instead (fast research tier)
 claudex gpt-5.6-luna        start on GPT-5.6 Luna
 claudex k3                  start on Kimi K3 (needs a Kimi for Coding subscription)
@@ -58,7 +58,7 @@ One-time setup (macOS/Linux):
 ./setup.sh
 ```
 
-`setup` installs claudex into a stable per-user directory (`~/.local/share/claudex`, or `%USERPROFILE%\.local\share\claudex` on Windows), separate from wherever you got the source, and puts a `claudex` command on your PATH. It downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes a `config.yaml` (bound to `127.0.0.1`, never exposed to the network), all inside that directory. Re-running setup later (say, after a `git pull`) refreshes the launcher script without touching your existing token, config, or login.
+`setup` installs claudex into a stable per-user directory (`~/.local/share/claudex`, or `%USERPROFILE%\.local\share\claudex` on Windows), separate from wherever you got the source, and puts a `claudex` command on your PATH. It downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes a `config.yaml` (bound to `127.0.0.1`, never exposed to the network), all inside that directory. Re-running setup later (say, after a `git pull`) refreshes the launcher script and applies any announced config migrations, without touching your token or login.
 
 Setup prints the remaining one-time steps: running `cli-proxy-api -codex-login` from the install directory (a browser OAuth login to your ChatGPT/Codex account) enables the GPT models, and optionally `cli-proxy-api -kimi-login` (device-flow login to a Kimi for Coding subscription) enables `k3`. After that, and after opening a new terminal so the PATH change takes effect, `claudex` works from anywhere. It starts the proxy if it isn't already running and health-checks it before use.
 
@@ -78,9 +78,11 @@ So when parallel sessions get throttled, claudex chooses to wait instead of die:
 
 ## Real gotchas found running this
 
-Claude Code will show a startup warning in claudex sessions that claude.ai connectors are disabled because an auth override is set. That's expected: it's confirming the proxy override is active, not an error.
+Claude Code will show a startup warning in claudex sessions that claude.ai connectors are disabled because an auth override is set. That's expected: it's confirming the proxy override is active, not an error, and signing in does not (and cannot) route Claude models into the session.
 
-**Never run `cli-proxy-api -claude-login`.** It's tempting if something requests a real Anthropic model and gets a `502 unknown provider` from the proxy, since that command looks like the obvious fix. It is not: it routes your real Claude subscription's OAuth token through a third-party tool, which violates Anthropic's Consumer Terms. Anthropic has been enforcing this without warning since early 2026, with real accounts suspended within minutes. claudex pins the subagent and every internal model tier to the session's own model specifically so nothing ever asks the proxy for an Anthropic model. Native Claude models are what plain `claude` is for.
+The `/model` picker also shows one "Custom Haiku model" row mirroring the session's model. That is not an extra model: it's the override that keeps Claude Code's internal background calls on the proxy model instead of letting them request an Anthropic id and fail.
+
+**Never run `cli-proxy-api -claude-login`.** It's tempting if something requests a real Anthropic model and gets a `502 unknown provider` from the proxy, since that command looks like the obvious fix. It is not: it routes your real Claude subscription's OAuth token through a third-party tool, which violates Anthropic's Consumer Terms. Anthropic has been enforcing this without warning since early 2026, with real accounts suspended within minutes. claudex pins subagents and internal background calls to the session's own model specifically so nothing ever asks the proxy for an Anthropic model. Native Claude models are what plain `claude` is for.
 
 Claude Code's own context and compaction defaults are tuned for its native Anthropic models, so claudex sessions also set `CLAUDE_CODE_MAX_CONTEXT_TOKENS`/`CLAUDE_CODE_AUTO_COMPACT_WINDOW` to the selected model's real window, plus a few other settings found necessary in practice (effort control, tool-use concurrency, disabling deferred tool search). Model ids claudex doesn't know keep Claude Code's defaults.
 

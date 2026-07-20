@@ -125,15 +125,15 @@ set CLAUDE_CODE_OAUTH_TOKEN=
 
 set ANTHROPIC_BASE_URL=http://127.0.0.1:8317
 set ANTHROPIC_AUTH_TOKEN=!TOKEN!
-REM Pin every internal model tier to the selected model. Without these, Claude
-REM Code's subagents and background calls default to real Anthropic ids
-REM (e.g. claude-opus-4-8, claude-haiku-4-5) and get a 502 from the proxy,
-REM since it only holds Codex/Kimi credentials, never Anthropic ones.
+REM Pin subagents and haiku-tier background calls (bash descriptions, topic
+REM detection) to the selected model. Without these, they default to real
+REM Anthropic ids and get a 502 from the proxy, which only holds Codex/Kimi
+REM credentials. Only the haiku tier is overridden: each ANTHROPIC_DEFAULT_*
+REM override adds a duplicate "Custom" row to the /model picker, and the
+REM other tiers are never called internally. Typing a native alias like
+REM "/model sonnet" errors visibly instead, which is the intended redirect.
 set CLAUDE_CODE_SUBAGENT_MODEL=!MODEL!
 set ANTHROPIC_DEFAULT_HAIKU_MODEL=!MODEL!
-set ANTHROPIC_DEFAULT_SONNET_MODEL=!MODEL!
-set ANTHROPIC_DEFAULT_OPUS_MODEL=!MODEL!
-set ANTHROPIC_DEFAULT_FABLE_MODEL=!MODEL!
 REM Let /model list the proxy's real catalog, so switching between proxy-served
 REM models mid-session works and unregistered models never appear.
 set CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
