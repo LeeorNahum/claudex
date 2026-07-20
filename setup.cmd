@@ -72,7 +72,7 @@ if not exist "%INSTALL_DIR%\config.yaml" (
     echo request-retry: 3
   )>"%INSTALL_DIR%\config.yaml"
 ) else (
-  REM One additive migration for installs from before v2.0.0: proxy-side retry
+  REM One additive migration for older installs (pre-2.x): proxy-side retry
   REM smooths transient upstream errors (403/408/5xx) without touching anything
   REM else in the user's existing config.
   findstr /b /c:"request-retry:" "%INSTALL_DIR%\config.yaml" >nul 2>&1

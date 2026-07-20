@@ -70,7 +70,7 @@ debug: false
 request-retry: 3
 EOF
 elif ! grep -q '^request-retry:' "$INSTALL_DIR/config.yaml"; then
-  # One additive migration for installs from before v2.0.0: proxy-side retry
+  # One additive migration for older installs (pre-2.x): proxy-side retry
   # smooths transient upstream errors (403/408/5xx) without touching anything
   # else in the user's existing config.
   echo "Adding request-retry to your existing config.yaml..."
