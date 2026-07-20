@@ -2,9 +2,6 @@
 set -eu
 cd "$(dirname "$0")"
 
-VERSION=dev
-[ -f VERSION ] && VERSION=$(cat VERSION)
-
 INSTALL_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/claudex"
 BIN_DIR="$HOME/.local/bin"
 mkdir -p "$INSTALL_DIR" "$BIN_DIR"
@@ -102,7 +99,7 @@ esac
 
 cat <<EOF
 
-claudex v$VERSION installed to $INSTALL_DIR
+claudex installed to $INSTALL_DIR
 Two things left, both one-time:
   1. cd "$INSTALL_DIR" && ./cli-proxy-api -codex-login   (opens a browser, authenticate with your ChatGPT/Codex account)
   2. Open a new shell (or source your profile), then run claudex.

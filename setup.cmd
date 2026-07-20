@@ -2,9 +2,6 @@
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
-set "VERSION=dev"
-if exist VERSION for /f "usebackq delims=" %%v in ("VERSION") do set "VERSION=%%v"
-
 set "INSTALL_DIR=%USERPROFILE%\.local\share\claudex"
 set "BIN_DIR=%USERPROFILE%\.local\bin"
 
@@ -98,7 +95,7 @@ REM a user's shell ever needs to find.
 powershell -NoProfile -Command "$binDir = [Environment]::ExpandEnvironmentVariables('%BIN_DIR%'); $userPath = [Environment]::GetEnvironmentVariable('Path','User'); if (-not $userPath) { $userPath = '' }; if (($userPath -split ';') -notcontains $binDir) { [Environment]::SetEnvironmentVariable('Path', ($userPath.TrimEnd(';') + ';' + $binDir), 'User'); Write-Host 'Added' $binDir 'to your PATH. Open a new terminal for it to take effect.' } else { Write-Host $binDir 'is already on your PATH.' }"
 
 echo.
-echo claudex v!VERSION! installed to %INSTALL_DIR%
+echo claudex installed to %INSTALL_DIR%
 echo Two things left, both one-time:
 echo   1. cd /d "%INSTALL_DIR%" ^&^& cli-proxy-api.exe -codex-login   (opens a browser, authenticate with your ChatGPT/Codex account)
 echo   2. Open a new terminal, then run claudex.

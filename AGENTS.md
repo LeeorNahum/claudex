@@ -9,7 +9,7 @@ Claude Code, wired to the models Anthropic doesn't serve. Every claudex session 
 - Everything this repo generates locally (the downloaded binary, `config.yaml`, the token, the OAuth credential) is gitignored. Never commit any of it.
 - Keep this repo small and self-contained. No framework, no installer wizard, no dependency beyond what the launcher genuinely needs.
 - Run `skill-sync` before every commit (see that skill).
-- Use `release-versioning` when bumping `VERSION`, tagging, or preparing a GitHub release (see that skill). The source checkout and the installed, running copy are deliberately separate: `setup.cmd`/`setup.sh` install into a stable per-user directory and put a PATH shim there, never assuming the repo folder stays around.
+- Use `release-versioning` when tagging or preparing a GitHub release (see that skill). The version lives only in the git tag, the GitHub release, and the README badge, with no version file or constant in the source. The source checkout and the installed, running copy are deliberately separate: `setup.cmd`/`setup.sh` install into a stable per-user directory and put a PATH shim there, never assuming the repo folder stays around.
 
 ## Model support contract
 
@@ -35,7 +35,7 @@ A model whose provider isn't signed in yet should still be discoverable: Claude 
 2. Add its context-window entry to BOTH `claudex.cmd` and `claudex.sh`. The two launchers are one program in two dialects and are always edited together, feature-identical.
 3. If the id doesn't match an existing proxy-mode pattern (`gpt-*`, `k3`, `k3[1m]`, `kimi-*`), add its pattern to the first-argument detection in both launchers.
 4. Update the README model table and the setup completion messages.
-5. Bump `VERSION` (minor) via the `release-versioning` skill.
+5. Cut a minor release via the `release-versioning` skill.
 
 ### Adding a new provider
 
