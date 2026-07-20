@@ -2,27 +2,33 @@
 setlocal enabledelayedexpansion
 set "SCRIPT_DIR=%~dp0"
 
-REM claudex is Claude Code plus compatibility for other models and providers.
-REM Bare claudex (or a native Claude model/alias) launches Claude Code untouched.
-REM A canonical proxy model id (gpt-*, k3, kimi-*) routes that session through
-REM the local CLIProxyAPI instead. One session speaks to exactly one backend.
-set "MODE=native"
-set "MODEL="
+REM claudex is Claude Code wired to the extra models and providers: every
+REM session runs through the local CLIProxyAPI, with the full proxy catalog in
+REM the /model picker. Plain vanilla Claude Code is what `claude` itself is
+REM for; claudex never opens it.
+set "MODEL=gpt-5.6-sol"
 set "ARGS="
+set "CONSUMED="
 set "FIRST=%~1"
 if not defined FIRST goto args_done
 if "!FIRST:~0,1!"=="-" goto args_done
-for %%m in (sonnet opus haiku fable default opusplan) do if /i "!FIRST!"=="%%m" (set "MODEL=!FIRST!"& goto consume)
-if "!FIRST:~0,7!"=="claude-" (set "MODEL=!FIRST!"& goto consume)
-if "!FIRST:~0,4!"=="gpt-" (set "MODE=proxy"& set "MODEL=!FIRST!"& goto consume)
-if "!FIRST:~0,5!"=="kimi-" (set "MODE=proxy"& set "MODEL=!FIRST!"& goto consume)
-if "!FIRST!"=="k3" (set "MODE=proxy"& set "MODEL=!FIRST!"& goto consume)
-if "!FIRST!"=="k3[1m]" (set "MODE=proxy"& set "MODEL=!FIRST!"& goto consume)
+for %%m in (sonnet opus haiku fable default opusplan) do if /i "!FIRST!"=="%%m" goto native_redirect
+if "!FIRST:~0,7!"=="claude-" goto native_redirect
+if "!FIRST:~0,4!"=="gpt-" (set "MODEL=!FIRST!"& goto consume)
+if "!FIRST:~0,5!"=="kimi-" (set "MODEL=!FIRST!"& goto consume)
+if "!FIRST!"=="k3" (set "MODEL=!FIRST!"& goto consume)
+if "!FIRST!"=="k3[1m]" (set "MODEL=!FIRST!"& goto consume)
 REM Not a model id: treat it as a prompt/argument for Claude Code as-is.
 goto args_done
 
+:native_redirect
+echo claudex: '!FIRST!' is a native Claude model. claudex only serves the extra providers;
+echo claudex: for Claude itself run: claude --model !FIRST!
+exit /b 1
+
 :consume
 REM The model argument is consumed; rebuild the remaining args for claude.
+set "CONSUMED=1"
 :collect
 shift
 if "%~1"=="" goto args_done
@@ -30,20 +36,6 @@ set ARGS=!ARGS! %1
 goto collect
 
 :args_done
-if "!MODE!"=="proxy" goto proxy_mode
-
-REM Native mode: plain Claude Code with the normal saved login. Clear stray
-REM non-Anthropic credentials so nothing hijacks the native session, but leave
-REM the real Claude auth surface completely untouched.
-set OPENAI_API_KEY=
-if defined MODEL (
-  claude --model !MODEL!!ARGS!
-) else (
-  claude %*
-)
-goto end
-
-:proxy_mode
 if not exist "%SCRIPT_DIR%cli-proxy-api.exe" (
   echo claudex: not set up yet. Run setup.cmd first.
   exit /b 1
@@ -112,6 +104,18 @@ if errorlevel 1 (
   del "!MODELS_JSON!" 2>nul
   exit /b 1
 )
+REM Keep Kimi visible even before its login: Claude Code allows one custom
+REM /model picker entry, so when the catalog lacks k3, pin it there as a
+REM signpost. Selecting it errors visibly in-chat, which tells the human (or
+REM the agent driving the session) exactly what to do, instead of Kimi being
+REM silently absent. Once -kimi-login has run, the catalog serves k3 and the
+REM real entry appears via gateway discovery instead.
+powershell -NoProfile -Command "$ids = (Get-Content '!MODELS_JSON!' -Raw | ConvertFrom-Json).data.id; if ($ids -contains 'k3') { exit 0 } else { exit 1 }"
+if errorlevel 1 (
+  set "ANTHROPIC_CUSTOM_MODEL_OPTION=k3"
+  set "ANTHROPIC_CUSTOM_MODEL_OPTION_NAME=Kimi K3 (not signed in)"
+  set "ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION=Enable with: cli-proxy-api.exe -kimi-login in %SCRIPT_DIR%"
+)
 del "!MODELS_JSON!" 2>nul
 
 REM Clear any stray real credentials first so nothing outranks the proxy override.
@@ -157,7 +161,9 @@ if defined CONTEXT_TOKENS (
 )
 REM Deliberately no cd here: claude must launch from the caller's actual
 REM working directory, not from SCRIPT_DIR. That was the bug.
-claude --model !MODEL!!ARGS!
-
-:end
+if defined CONSUMED (
+  claude --model !MODEL!!ARGS!
+) else (
+  claude --model !MODEL! %*
+)
 endlocal

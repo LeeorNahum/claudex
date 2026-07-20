@@ -104,10 +104,10 @@ echo   1. cd /d "%INSTALL_DIR%" ^&^& cli-proxy-api.exe -codex-login   (opens a b
 echo   2. Open a new terminal, then run claudex.
 echo.
 echo How to use it:
-echo   claudex                 normal Claude Code, your Claude login, untouched
-echo   claudex gpt-5.6-sol     that session runs GPT-5.6 Sol through the local proxy
-echo   claudex gpt-5.6-terra   same for Terra (also gpt-5.6-luna)
-echo   claudex k3              Kimi K3, after a one-time cli-proxy-api.exe -kimi-login
+echo   claudex                 Claude Code on GPT-5.6 Sol, full model catalog in /model
+echo   claudex gpt-5.6-terra   start on Terra instead (also gpt-5.6-luna)
+echo   claudex k3              start on Kimi K3, after a one-time cli-proxy-api.exe -kimi-login
+echo   claude                  plain vanilla Claude Code stays untouched
 echo.
 echo Never run -claude-login. It routes your real Claude subscription through a third-party
 echo tool, which violates Anthropic's Consumer Terms and has led to real account suspensions.

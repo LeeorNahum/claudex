@@ -2,22 +2,21 @@
 set -eu
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# claudex is Claude Code plus compatibility for other models and providers.
-# Bare claudex (or a native Claude model/alias) launches Claude Code untouched.
-# A canonical proxy model id (gpt-*, k3, kimi-*) routes that session through
-# the local CLIProxyAPI instead. One session speaks to exactly one backend.
-MODE=native
-MODEL=""
+# claudex is Claude Code wired to the extra models and providers: every
+# session runs through the local CLIProxyAPI, with the full proxy catalog in
+# the /model picker. Plain vanilla Claude Code is what `claude` itself is
+# for; claudex never opens it.
+MODEL="gpt-5.6-sol"
 case "${1:-}" in
   "" | -*)
-    # No model named: plain Claude Code, all args forwarded untouched.
+    # No model named: default model, args forwarded untouched.
     ;;
   sonnet | opus | haiku | fable | default | opusplan | claude-*)
-    MODEL="$1"
-    shift
+    echo "claudex: '$1' is a native Claude model. claudex only serves the extra providers;" >&2
+    echo "claudex: for Claude itself run: claude --model $1" >&2
+    exit 1
     ;;
   gpt-* | k3 | "k3[1m]" | kimi-*)
-    MODE=proxy
     MODEL="$1"
     shift
     ;;
@@ -25,16 +24,6 @@ case "${1:-}" in
     # Not a model id: treat it as a prompt/argument for Claude Code as-is.
     ;;
 esac
-
-if [ "$MODE" = "native" ]; then
-  # Clear stray non-Anthropic credentials so nothing hijacks the native login,
-  # but leave the real Claude auth surface completely untouched.
-  unset OPENAI_API_KEY
-  if [ -n "$MODEL" ]; then
-    exec claude --model "$MODEL" "$@"
-  fi
-  exec claude "$@"
-fi
 
 for f in cli-proxy-api config.yaml claudex-token.txt; do
   if [ ! -e "$SCRIPT_DIR/$f" ]; then
@@ -97,6 +86,18 @@ if ! printf '%s' "$CATALOG" | grep -q "\"id\":\"$CATALOG_ID\""; then
   exit 1
 fi
 
+# Keep Kimi visible even before its login: Claude Code allows one custom
+# /model picker entry, so when the catalog lacks k3, pin it there as a
+# signpost. Selecting it errors visibly in-chat, which tells the human (or
+# the agent driving the session) exactly what to do, instead of Kimi being
+# silently absent. Once -kimi-login has run, the catalog serves k3 and the
+# real entry appears via gateway discovery instead.
+if ! printf '%s' "$CATALOG" | grep -q '"id":"k3"'; then
+  export ANTHROPIC_CUSTOM_MODEL_OPTION="k3"
+  export ANTHROPIC_CUSTOM_MODEL_OPTION_NAME="Kimi K3 (not signed in)"
+  export ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION="Enable with: cli-proxy-api -kimi-login in $SCRIPT_DIR"
+fi
+
 # Clear any stray real credentials first so nothing outranks the proxy override.
 unset ANTHROPIC_API_KEY OPENAI_API_KEY CLAUDE_CODE_OAUTH_TOKEN
 
@@ -112,14 +113,14 @@ export ANTHROPIC_DEFAULT_SONNET_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_OPUS_MODEL="$MODEL"
 export ANTHROPIC_DEFAULT_FABLE_MODEL="$MODEL"
 # Let /model list the proxy's real catalog, so switching between proxy-served
-# models mid-session works and unregistered models never appear.
+# models mid-session works and unregistered models never appear as real entries.
 export CLAUDE_CODE_ENABLE_GATEWAY_MODEL_DISCOVERY=1
 export CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1
 export CLAUDE_CODE_MAX_TOOL_USE_CONCURRENCY=3
 export ENABLE_TOOL_SEARCH=false
-# Gentle rate-limit smoothing: upstream quotas are account-level and shared
-# by every claudex terminal, so parallel sessions will sometimes 429. Retry
-# with exponential backoff until the quota window frees up, instead of
+# Gentle rate-limit smoothing: upstream limits are account-level and shared
+# by every claudex terminal, so parallel sessions can trip burst throttling.
+# Retry with exponential backoff until the throttle clears, instead of
 # erroring out the whole thread.
 export CLAUDE_CODE_MAX_RETRIES=15
 export CLAUDE_CODE_RETRY_WATCHDOG=1

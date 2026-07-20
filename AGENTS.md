@@ -1,6 +1,6 @@
 # claudex
 
-Claude Code, plus compatibility for other models and providers. Bare `claudex` is normal Claude Code with the user's own Claude login, untouched. `claudex <canonical-model-id>` routes that one session through the vendored local proxy (CLIProxyAPI) to a non-Anthropic model instead. See README.md for what it does and how to set it up.
+Claude Code, wired to the models Anthropic doesn't serve. Every claudex session runs through the vendored local proxy (CLIProxyAPI) with the full proxy catalog in the `/model` picker; bare `claudex` starts on `gpt-5.6-sol`, and `claudex <canonical-model-id>` starts on another proxy model. Plain vanilla Claude Code is what `claude` itself is for; claudex never opens it, and redirects native Claude model requests to `claude`. See README.md for what it does and how to set it up.
 
 ## Standing rules
 
@@ -33,6 +33,8 @@ The live catalog is the source of truth for what exists: `curl -H "Authorization
 
 Older ids the proxy also serves (gpt-5.5 and earlier) deliberately pass through undocumented; the README and this table track only the latest generation per provider. Thinking level for GPT models is Claude Code's effort control (`CLAUDE_CODE_ALWAYS_ENABLE_EFFORT=1`, already set), not model-name suffixes.
 
+A model whose provider isn't signed in yet should still be discoverable: Claude Code allows exactly one custom `/model` picker entry (`ANTHROPIC_CUSTOM_MODEL_OPTION`), and claudex uses that single slot as a "not signed in" signpost for the highest-value missing model (currently `k3` when the catalog lacks it). Selecting the signpost errors visibly in-chat, which is the intended UX: the human or driving agent reads the error and runs the login. If the roster grows more than one perpetually-missing provider, revisit this, since there is only one slot.
+
 ### Adding a new model
 
 1. Confirm the canonical id in the live proxy catalog (or the provider's docs if the proxy needs an update first; `setup` downloads the latest CLIProxyAPI release whenever the binary is missing, so updating the proxy means deleting the old binary from the install directory and re-running setup).
@@ -50,4 +52,4 @@ Older ids the proxy also serves (gpt-5.5 and earlier) deliberately pass through 
 
 ### Backend boundary
 
-One Claude Code session speaks to exactly one backend (`ANTHROPIC_BASE_URL` is session-wide). Native Claude models and proxy models therefore never share a session; unification happens at the `claudex <model>` command layer, one backend per terminal. Do not try to blend backends inside a session; that road leads to registering Anthropic credentials with the proxy, which is banned above.
+One Claude Code session speaks to exactly one backend (`ANTHROPIC_BASE_URL` is session-wide), and a claudex session's backend is always the proxy. Native Claude models therefore cannot appear in a claudex session; `claude` itself is the vanilla Anthropic side, and claudex redirects native model requests there. Do not try to blend backends inside a session; that road leads to registering Anthropic credentials with the proxy, which is banned above.
