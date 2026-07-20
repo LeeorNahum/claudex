@@ -90,11 +90,14 @@ if errorlevel 1 (
 REM Preflight: only launch against a model the proxy actually has credentials
 REM for. This turns the proxy's opaque "502 unknown provider" into a clear,
 REM actionable error before any session starts.
-curl.exe -fsS -K "%SCRIPT_DIR%curl-auth.cfg" -o "%TEMP%\claudex-models.json" http://127.0.0.1:8317/v1/models 2>nul
+REM Unique per-launch file: parallel claudex terminals must never share one
+REM catalog snapshot, or a slow launch can read another launch's stale data.
+set "MODELS_JSON=%TEMP%\claudex-models-%RANDOM%%RANDOM%.json"
+curl.exe -fsS -K "%SCRIPT_DIR%curl-auth.cfg" -o "!MODELS_JSON!" http://127.0.0.1:8317/v1/models 2>nul
 REM The [1m] long-context suffix is Claude Code notation; the catalog lists the base id.
 set "CATALOG_ID=!MODEL!"
 if "!MODEL!"=="k3[1m]" set "CATALOG_ID=k3"
-powershell -NoProfile -Command "$ids = (Get-Content '%TEMP%\claudex-models.json' -Raw | ConvertFrom-Json).data.id; if ($ids -contains '!CATALOG_ID!') { exit 0 } else { exit 1 }"
+powershell -NoProfile -Command "$ids = (Get-Content '!MODELS_JSON!' -Raw | ConvertFrom-Json).data.id; if ($ids -contains '!CATALOG_ID!') { exit 0 } else { exit 1 }"
 if errorlevel 1 (
   echo claudex: the local proxy has no credentials for model '!MODEL!'.
   if "!CATALOG_ID!"=="k3" (
@@ -105,9 +108,11 @@ if errorlevel 1 (
     echo claudex: if the Codex OAuth credential expired, re-run: cd /d "%SCRIPT_DIR%" ^&^& cli-proxy-api.exe -codex-login
   )
   echo claudex: models the proxy currently serves:
-  powershell -NoProfile -Command "(Get-Content '%TEMP%\claudex-models.json' -Raw | ConvertFrom-Json).data.id | ForEach-Object { '  ' + $_ }"
+  powershell -NoProfile -Command "(Get-Content '!MODELS_JSON!' -Raw | ConvertFrom-Json).data.id | ForEach-Object { '  ' + $_ }"
+  del "!MODELS_JSON!" 2>nul
   exit /b 1
 )
+del "!MODELS_JSON!" 2>nul
 
 REM Clear any stray real credentials first so nothing outranks the proxy override.
 set ANTHROPIC_API_KEY=

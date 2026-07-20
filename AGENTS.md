@@ -35,7 +35,7 @@ Older ids the proxy also serves (gpt-5.5 and earlier) deliberately pass through 
 
 ### Adding a new model
 
-1. Confirm the canonical id in the live proxy catalog (or the provider's docs if the proxy needs an update first; `setup` always downloads the latest CLIProxyAPI release, so a proxy-side model addition usually just needs a re-run of setup with the old binary deleted).
+1. Confirm the canonical id in the live proxy catalog (or the provider's docs if the proxy needs an update first; `setup` downloads the latest CLIProxyAPI release whenever the binary is missing, so updating the proxy means deleting the old binary from the install directory and re-running setup).
 2. Add its context-window entry to BOTH `claudex.cmd` and `claudex.sh`. The two launchers are one program in two dialects and are always edited together, feature-identical.
 3. If the id doesn't match an existing proxy-mode pattern (`gpt-*`, `k3`, `k3[1m]`, `kimi-*`), add its pattern to the first-argument detection in both launchers.
 4. Update the roster table above, the README model table, and the setup completion messages.
