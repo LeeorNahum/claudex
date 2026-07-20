@@ -32,13 +32,13 @@ claudex sonnet              redirects you to plain claude; claudex never opens v
 
 Model names are always the provider's canonical id, exactly as Claude Code's `/model` picker and the proxy's catalog spell them. No nicknames: providers reuse names like "sol" across generations, so the id you type is the id that runs.
 
-| Model id | Needs | Context window |
+| Model id | Needs | Context window (tokens) |
 | --- | --- | --- |
-| `gpt-5.6-sol` | one-time `-codex-login` (ChatGPT account) | 372k |
-| `gpt-5.6-terra` | same login | 372k |
-| `gpt-5.6-luna` | same login | 372k |
-| `k3` | one-time `-kimi-login` (Kimi for Coding subscription) | 256k |
-| `k3[1m]` | same login, 1M-tier subscription | 1M |
+| `gpt-5.6-sol` | one-time `-codex-login` (ChatGPT account) | 372000 |
+| `gpt-5.6-terra` | same login | 372000 |
+| `gpt-5.6-luna` | same login | 372000 |
+| `k3` | one-time `-kimi-login` (Kimi for Coding subscription) | 262144 |
+| `k3[1m]` | same login, 1M-tier subscription | 1048576 |
 
 Asking for a model the proxy has no credentials for fails fast with the exact login command to fix it, before any session starts. That error is plain text in the terminal, so both you and any agent driving claudex can read it and act. The same goes for picking the not-signed-in Kimi entry mid-session: the error lands in the chat where either of you can see it.
 
