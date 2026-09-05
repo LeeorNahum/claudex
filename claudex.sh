@@ -6,7 +6,10 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # session runs through the local CLIProxyAPI, with the full proxy catalog in
 # the /model picker. Plain vanilla Claude Code is what `claude` itself is
 # for. claudex never opens it.
-MODEL="gpt-5.6-sol"
+MODEL="gpt-6-astra"
+# agent-yolo prepends this flag before the optional positional model.
+YOLO=""
+if [ "${1:-}" = "--dangerously-skip-permissions" ]; then YOLO="$1"; shift; fi
 case "${1:-}" in
   "" | -*)
     # No model named: default model, args forwarded untouched.
@@ -24,6 +27,30 @@ case "${1:-}" in
     # Not a model id: treat it as a prompt/argument for Claude Code as-is.
     ;;
 esac
+
+EXPLICIT_MODEL=0
+EXPECT_MODEL=0
+for ARG do
+  if [ "$EXPECT_MODEL" -eq 1 ]; then
+    [ -n "$ARG" ] || { echo 'claudex: --model needs a canonical model id.' >&2; exit 1; }
+    MODEL="$ARG"
+    EXPLICIT_MODEL=1
+    EXPECT_MODEL=0
+    continue
+  fi
+  case "$ARG" in
+    --) break ;;
+    --model) EXPECT_MODEL=1 ;;
+    --model=*) MODEL=${ARG#--model=}; EXPLICIT_MODEL=1 ;;
+  esac
+done
+if [ "$EXPECT_MODEL" -eq 1 ] || [ -z "$MODEL" ]; then echo 'claudex: --model needs a canonical model id.' >&2; exit 1; fi
+case "$MODEL" in
+  sonnet | opus | haiku | fable | default | opusplan | claude-*)
+    echo "claudex: native Claude models belong to plain claude --model $MODEL" >&2
+    exit 1 ;;
+esac
+if [ -n "$YOLO" ]; then set -- "$YOLO" "$@"; fi
 
 for f in cli-proxy-api config.yaml claudex-token.txt; do
   if [ ! -e "$SCRIPT_DIR/$f" ]; then
@@ -71,7 +98,8 @@ fi
 CATALOG=$(curl -fsS -K "$SCRIPT_DIR/curl-auth.cfg" http://127.0.0.1:8317/v1/models 2>/dev/null || true)
 # The [1m] long-context suffix is Claude Code notation. The catalog lists the base id.
 CATALOG_ID=${MODEL%"[1m]"}
-if ! printf '%s' "$CATALOG" | grep -q "\"id\":\"$CATALOG_ID\""; then
+CATALOG_IDS=$(printf '%s' "$CATALOG" | tr ',' '\n' | sed -n 's/.*"id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')
+if ! printf '%s\n' "$CATALOG_IDS" | grep -Fqx -e "$CATALOG_ID"; then
   echo "claudex: the local proxy has no credentials for model '$MODEL'." >&2
   case "$MODEL" in
     k3 | "k3[1m]" | kimi-*)
@@ -92,7 +120,8 @@ fi
 # the agent driving the session) exactly what to do, instead of Kimi being
 # silently absent. Once -kimi-login has run, the catalog serves k3 and the
 # real entry appears via gateway discovery instead.
-if ! printf '%s' "$CATALOG" | grep -q '"id":"k3"'; then
+unset ANTHROPIC_CUSTOM_MODEL_OPTION ANTHROPIC_CUSTOM_MODEL_OPTION_NAME ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION
+if ! printf '%s\n' "$CATALOG_IDS" | grep -Fqx -e 'k3'; then
   export ANTHROPIC_CUSTOM_MODEL_OPTION="k3"
   export ANTHROPIC_CUSTOM_MODEL_OPTION_NAME="Kimi K3 (not signed in)"
   export ANTHROPIC_CUSTOM_MODEL_OPTION_DESCRIPTION="Enable with: cli-proxy-api -kimi-login in $SCRIPT_DIR"
@@ -131,15 +160,18 @@ export CLAUDE_CODE_RETRY_WATCHDOG=1
 # wrong point without this. Values track each supported model's real window,
 # and unknown ids keep Claude Code's defaults.
 case "$MODEL" in
+  gpt-6-astra) CONTEXT_TOKENS=1050000 ;;
   gpt-5.6-*) CONTEXT_TOKENS=372000 ;;
   "k3[1m]") CONTEXT_TOKENS=1048576 ;;
   k3 | kimi-*) CONTEXT_TOKENS=262144 ;;
   *) CONTEXT_TOKENS="" ;;
 esac
+unset CLAUDE_CODE_MAX_CONTEXT_TOKENS CLAUDE_CODE_AUTO_COMPACT_WINDOW
 if [ -n "$CONTEXT_TOKENS" ]; then
   export CLAUDE_CODE_MAX_CONTEXT_TOKENS="$CONTEXT_TOKENS"
   export CLAUDE_CODE_AUTO_COMPACT_WINDOW="$CONTEXT_TOKENS"
 fi
 # Deliberately no cd here: claude must launch from the caller's actual
 # working directory, not from SCRIPT_DIR. That was the bug.
-exec claude --model "$MODEL" "$@"
+if [ "$EXPLICIT_MODEL" -eq 0 ]; then set -- --model "$MODEL" "$@"; fi
+exec claude "$@"

@@ -2,15 +2,13 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/LeeorNahum/claudex?sort=semver)](https://github.com/LeeorNahum/claudex/releases/latest)
 
-Claude Code, wired to the models Anthropic doesn't serve. `claudex` opens Claude Code with every extra model you have access to (GPT-5.6 Sol, Terra, Luna, and Kimi K3) in its `/model` picker, running through a local proxy. Plain `claude` stays your vanilla Anthropic Claude Code. claudex is the everything-else side. Windows uses the `.cmd` files, macOS/Linux use the `.sh` files.
+Claude Code, wired to the models Anthropic doesn't serve. `claudex` opens Claude Code with every extra model you have access to (GPT-6 Astra, GPT-5.6, and Kimi K3) in its `/model` picker, running through a local proxy. Plain `claude` stays your vanilla Anthropic Claude Code. claudex is the everything-else side. Windows uses a native executable, and macOS/Linux use the shell launcher.
 
 <img width="1896" height="936" alt="Claudex Demo" src="https://github.com/user-attachments/assets/b3f6d088-e5e2-4e68-b3f3-112b07815b66" />
 
 ## Why this exists
 
-Theo Browne, the developer behind t3.gg, made a claim that got real attention: OpenAI's newest model performs meaningfully better inside Anthropic's Claude Code than inside OpenAI's own CLI, Codex. The reason is not mysterious: Codex has a documented bug (its MultiAgent V2 mode defaults `hide_spawn_agent_metadata` to `true`, removing the very fields needed to route subagents to cheaper models), so every subagent silently inherits the full, expensive parent configuration. Theo reported cutting his own token spend by 4 to 5x after working around it. Claude Code's harness does not have this problem.
-
-He explained the why in real detail and never actually walked through the setup on screen. This is the tested, cross-platform, from-scratch implementation of the trick, grown into one command that fronts every model you have access to.
+Use Claude Code's tools and workflow with models from other providers. Claudex connects the harness to your existing provider login through a local proxy.
 
 ## How it works
 
@@ -21,7 +19,7 @@ One session speaks to exactly one backend, and a claudex session's backend is al
 ## Usage
 
 ```text
-claudex                     Claude Code on GPT-5.6 Sol, proxy catalog in /model
+claudex                     Claude Code on GPT-6 Astra, proxy catalog in /model
 claudex gpt-5.6-terra       start on GPT-5.6 Terra instead (fast research tier)
 claudex gpt-5.6-luna        start on GPT-5.6 Luna
 claudex k3                  start on Kimi K3 (needs a Kimi for Coding subscription)
@@ -34,13 +32,14 @@ Model names are always the provider's canonical id, exactly as Claude Code's `/m
 
 | Model id | Needs | Context window |
 | --- | --- | --- |
-| `gpt-5.6-sol` | one-time `-codex-login` (ChatGPT account) | 372k |
+| `gpt-6-astra` (default) | one-time `-codex-login` (ChatGPT account) | 1.05M |
+| `gpt-5.6-sol` | same login | 372k |
 | `gpt-5.6-terra` | same login | 372k |
 | `gpt-5.6-luna` | same login | 372k |
 | `k3` | one-time `-kimi-login` (Kimi for Coding subscription) | 256k |
 | `k3[1m]` | same login, 1M-tier subscription | 1M |
 
-Asking for a model the proxy has no credentials for fails fast with the exact login command to fix it, before any session starts. That error is plain text in the terminal, so both you and any agent driving claudex can read it and act. The same goes for picking the not-signed-in Kimi entry mid-session: the error lands in the chat where either of you can see it.
+A model missing from the proxy catalog fails before the session starts. Catalog visibility does not prove the saved provider login is still valid. If an upstream request reports `invalid_refresh_token`, run the installed proxy's `-codex-login` flow again. That error is plain text in the terminal, so both you and any agent driving claudex can read it and act. The same goes for picking the not-signed-in Kimi entry mid-session: the error lands in the chat where either of you can see it.
 
 ## Setup
 
@@ -52,13 +51,15 @@ One-time setup (Windows):
 setup.cmd
 ```
 
+From a Git checkout, setup reads the release version from the latest tag. From a downloaded source archive, pass `-Version` followed by the release number without its `v` prefix.
+
 One-time setup (macOS/Linux):
 
 ```text
 ./setup.sh
 ```
 
-`setup` installs claudex into a stable per-user directory (`~/.local/share/claudex`, or `%USERPROFILE%\.local\share\claudex` on Windows), separate from wherever you got the source, and puts a `claudex` command on your PATH. It downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes a `config.yaml` (bound to `127.0.0.1`, never exposed to the network), all inside that directory. Re-running setup later (say, after a `git pull`) refreshes the launcher script and applies any announced config migrations, without touching your token or login.
+`setup` installs claudex into a stable per-user directory (`~/.local/share/claudex`, or `%USERPROFILE%\.local\share\claudex` on Windows), separate from wherever you got the source, and puts a `claudex` command on your PATH. It downloads the real CLIProxyAPI release for your OS/arch, generates a local-only auth token, and writes a `config.yaml` (bound to `127.0.0.1`, never exposed to the network), all inside that directory. Re-running setup later (say, after a `git pull`) refreshes the launcher and applies any announced config migrations, without touching your token or login.
 
 Setup prints the remaining one-time steps: running `cli-proxy-api -codex-login` from the install directory (a browser OAuth login to your ChatGPT/Codex account) enables the GPT models, and optionally `cli-proxy-api -kimi-login` (device-flow login to a Kimi for Coding subscription) enables `k3`. After that, and after opening a new terminal so the PATH change takes effect, `claudex` works from anywhere. It starts the proxy if it isn't already running and health-checks it before use.
 
@@ -74,7 +75,7 @@ Paste this into Claude Code, Codex, or any coding agent:
 
 Every claudex terminal shares the same provider account, and the provider's limits are account-level, in two flavors: burst throttling (fire enough parallel requests in the same moment and the account gets 429s for a few seconds, then recovers) and the rolling 5-hour plus weekly usage windows. Parallel terminals trip the burst throttle far more often than they exhaust the window. Either way, they do not each get their own allowance, and no proxy setting changes that.
 
-So when parallel sessions get throttled, claudex chooses to wait instead of die: sessions set Claude Code to keep retrying rate-limited requests with exponential backoff until the throttle clears. A session that looks stalled mid-turn is usually doing exactly that, and will resume on its own. The proxy's own log (`proxy.log` in the install directory) shows the 429s if you want to confirm. The proxy also quietly retries transient upstream errors (`request-retry` in `config.yaml`) so brief blips never surface at all.
+So when parallel sessions get throttled, claudex chooses to wait instead of die: sessions set Claude Code to keep retrying rate-limited requests with exponential backoff until the throttle clears. A session that looks stalled mid-turn is usually doing exactly that, and will resume on its own. The proxy's logs (`logs` on Windows, `proxy.log` on macOS/Linux) shows the 429s if you want to confirm. The proxy also quietly retries transient upstream errors (`request-retry` in `config.yaml`) so brief blips never surface at all.
 
 ## Real gotchas found running this
 
@@ -86,9 +87,13 @@ The `/model` picker shows a `background-summaries` entry labeled "Custom Haiku m
 
 Claude Code's own context and compaction defaults are tuned for its native Anthropic models, so claudex sessions also set `CLAUDE_CODE_MAX_CONTEXT_TOKENS`/`CLAUDE_CODE_AUTO_COMPACT_WINDOW` to the selected model's real window, plus a few other settings found necessary in practice (effort control, tool-use concurrency, disabling deferred tool search). Model ids claudex doesn't know keep Claude Code's defaults.
 
-The vendored CLIProxyAPI release also bundles its own `README.md`/`README_CN.md`/`config.example.yaml`. `setup.cmd` extracts the release into a throwaway folder and only copies out the binary, specifically so it can never silently overwrite this repo's own files.
+On Windows, setup verifies the proxy archive against its published SHA256 checksum and extracts only the executable into the installation. Run `setup.cmd -UpdateProxy` to update the proxy. Existing tokens and provider logins are preserved, and the previous binary is backed up. Proxy logs live under the installation's `logs` directory.
 
 Everything claudex generates locally (the downloaded binary, `config.yaml`, the token, the OAuth credentials) is gitignored. Never commit any of it.
+
+## Windows invocation
+
+Type `claudex` in Explorer's address bar to open in the displayed filesystem folder, including UNC paths. cmd and PowerShell use the same executable. Native `claude.exe` must be on an absolute PATH entry. Arguments are forwarded unchanged except for the documented positional model selection. Explicit `--model` choices take precedence. No default prompt or speed option is added. Normal shell parsing still applies before the launcher runs.
 
 ## Yolo mode
 

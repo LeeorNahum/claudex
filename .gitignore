@@ -1,5 +1,7 @@
 *.log
 *.tmp
+dist/
+__pycache__/
 
 # runtime/local state: never commit a binary, a local secret token,
 # generated config, or OAuth credentials

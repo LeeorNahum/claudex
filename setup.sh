@@ -137,7 +137,7 @@ Two things left, both one-time:
   2. Open a new shell (or source your profile), then run claudex.
 
 How to use it:
-  claudex                 Claude Code on GPT-5.6 Sol, full model catalog in /model
+  claudex                 Claude Code on GPT-6 Astra, full model catalog in /model
   claudex gpt-5.6-terra   start on Terra instead (also gpt-5.6-luna)
   claudex k3              start on Kimi K3, after a one-time ./cli-proxy-api -kimi-login
   claude                  plain vanilla Claude Code stays untouched
