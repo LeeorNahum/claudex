@@ -37,5 +37,3 @@ def shell_execute(executable, raw, cwd):
         return code.value
     finally:
         kernel.CloseHandle(info.hProcess)
-
-
