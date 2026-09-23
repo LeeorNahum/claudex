@@ -11,6 +11,13 @@ Claude Code, wired to the models Anthropic doesn't serve. Every claudex session 
 - Run `skill-sync` before every commit (see that skill).
 - Use `release-versioning` when tagging or preparing a GitHub release (see that skill). The git tag owns the release version, which is stamped into the Windows executable at build time and reflected in the release and README badge. The source checkout and installed copy are separate: setup installs into a stable per-user directory and never assumes the checkout stays around.
 
+## Working with Leeor
+
+- Report results first, then ask before any commit, push, tag, or release publish. Conditional or future-tense phrasing such as "then we can publish" is not approval. Only a direct, present-tense instruction or an explicit answer to the question counts.
+- Never restart the running proxy uninvited. Leeor's live sessions run through it, and he has refused a restart while they run. A `config.yaml` change waits for the restart he chooses.
+- Parallel-session 429s are the provider's account-level burst throttle, not quota exhaustion and not claudex logic. The accepted answer is retry with backoff: keep `CLAUDE_CODE_MAX_RETRIES=15` and `CLAUDE_CODE_RETRY_WATCHDOG=1` in both launchers and `request-retry: 3` in both setup scripts. Leeor does not want a second account.
+- Leeor often replies through speech-to-text. Read for intent: "Kimmy" is Kimi, "claude x" or "Claudius" is claudex, "soul" is Sol.
+
 ## Model preference
 
 Prefer the newest, most capable flagship GPT model supported by the provider and live proxy. Prioritize capability over speed or cost. Verify the canonical id and context window against official provider documentation, then verify the route with a real request before changing the default. Do not infer capability from alphabetical sorting, silently fall back to a smaller model, or override an explicit user model selection. GPT-6 Astra (`gpt-6-astra`) is the current default.
