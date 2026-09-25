@@ -12,7 +12,7 @@
 	url = https://github.com/LeeorNahum/release-versioning-skill.git
 [submodule ".agents/skills/anti-backrooms"]
 	path = .agents/skills/anti-backrooms
-	url = https://github.com/LeeorNahum/anti-backrooms.git
+	url = https://github.com/LeeorNahum/anti-backrooms-skill.git
 [submodule ".agents/skills/subagent-spawn-book"]
 	path = .agents/skills/subagent-spawn-book
 	url = https://github.com/LeeorNahum/subagent-spawn-book-skill.git
